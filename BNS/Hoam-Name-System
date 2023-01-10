@@ -1,0 +1,76 @@
+;; Forked from community-handles-v2.clar
+
+(define-constant err-not-authorized (err u403))
+(define-constant internal-price-high u999999999999999999999999999999)
+(define-constant name-salt 0x00)
+(define-fungible-token hoam)
+
+(define-map namespace-controller (buff 20) principal)
+
+(define-data-var ctx-bulk-registration-namespace (buff 20) 0x00)
+
+;; Preorder the namespace on-chain
+(define-public (namespace-preorder (hashed-salted-namespace (buff 20)) (stx-to-burn uint))
+    (contract-call? 'SP000000000000000000002Q6VF78.bns
+        namespace-preorder hashed-salted-namespace stx-to-burn))
+
+;; Reveal the namespace
+;; Registration - possible to limit registration to namespace controller (hoamDAO)?
+;; Name Renewal - each epoch 70,000 blocks, names (aka zipcode tokens) are randomly distributed among epoch block miners by VRF
+;; Subdomain Renewal - every 140,000 blocks
+;; Fees - go to namespace controller (hoamDAO)
+(define-public (namespace-reveal (namespace (buff 20)) (salt (buff 20)) (lifetime uint) (controller (optional principal)))
+    (begin
+        (map-set namespace-controller namespace (default-to contract-caller controller))
+        (try! (contract-call? 'SP000000000000000000002Q6VF78.bns
+                                namespace-reveal
+                                namespace
+                                salt
+                                internal-price-high u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1
+                                lifetime
+                                (as-contract tx-sender)))        
+        (try! (as-contract (contract-call? 'SP000000000000000000002Q6VF78.bns
+                                namespace-ready namespace)))
+        (ok true)))
+
+;; Register many names for 1 ustx by namespace controller
+;; List(s) - zip code, county code, state code -- list format??
+;; Zonefile(s) - zone files contain respecive subdomains (addresses), DIDs, SIP-013 NFTree token URI
+;; Name Principle - hoamDAO contract
+;; Subdomain Principle - same as corresponding SIP-013 NFTree token principal
+(define-public (bulk-name-register (namespace (buff 20)) (names (list 50000 {name: (buff 48), owner: principal, zonefile-hash: (buff 20)})))
+    (begin
+        (try! (is-contract-caller-namespace-controller namespace))
+        (var-set ctx-bulk-registration-namespace namespace)
+        (try! (as-contract (to-bool-response (contract-call? 'SP000000000000000000002Q6VF78.bns namespace-update-function-price namespace u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u0 u1 u1))))
+        (try! (fold bulk-name-register-iter names (ok true)))
+        (var-set ctx-bulk-registration-namespace 0x00)
+        (try! (as-contract (to-bool-response (contract-call? 'SP000000000000000000002Q6VF78.bns namespace-update-function-price namespace internal-price-high u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1 u1))))
+        (ok true)))
+
+;; Convert response to standard uint
+(define-private (to-uint-response (value (response uint int)))
+    (match value
+           success (ok success)
+           error (err (to-uint error))))
+
+;; Convert response to standard bool
+(define-private (to-bool-response (value (response bool int)))
+    (match value
+           success (ok success)
+           error (err (to-uint error))))
+
+(define-private (is-contract-caller-namespace-controller (namespace (buff 20)))
+    (ok (asserts! (is-eq (map-get? namespace-controller namespace) (some contract-caller)) err-not-authorized)))
+
+(define-read-only (get-namespace-controller (namespace (buff 20)))
+    (map-get? namespace-controller namespace))
+
+;; Transfer namespace controller to hoamDAO
+(define-public (set-namespace-controller (namespace (buff 20)) (new-controller principal))
+    (begin
+        (try! (is-contract-caller-namespace-controller namespace))
+        (try! (ft-mint? hoam u1 tx-sender))
+        (try! (ft-burn? hoam u1 tx-sender))
+        (map-set namespace-controller namespace new-controller)
+        (ok true)))

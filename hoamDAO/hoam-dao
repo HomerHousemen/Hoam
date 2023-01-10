@@ -1,0 +1,19 @@
+;; Forked from StackerDAO - extensions=utility - proposals=smart contracts - 
+;; Bootstrap Proposal
+
+(impl-trait .proposal-trait.proposal-trait)
+
+(define-public (execute (sender principal))
+  (begin
+    ;; List of hoamDAO functionality
+    (try! (contract-call? .executor-dao set-extensions
+      (list
+        {extension: .hoamdao-vault, enabled: true}
+        {extension: .hoamdao-membership, enabled: true}
+        {extension: .hoamdao-proposal, enabled: true}
+        {extension: .hoamdao-voting, enabled: true}
+        {extension: .hoamdao-poxl, enabled: true}
+        {extension: .hoamdao-treasurymgmt, enabled: true}
+      )
+    ))
+)
