@@ -30,8 +30,9 @@ function writeBigUInt128BE(buf, uint, offset) {
 }
 
 // make an NFT descriptor
+// can this descriptor include a fourth column??
 function makeNFTDesc(dataHash, size, tickets) {
-  // format
+  // forma
   // |--hash (32 bytes)--|--size (16 bytes)--|--tickets (16 bytes)--|
 
   const buf = Buffer.alloc(64);
