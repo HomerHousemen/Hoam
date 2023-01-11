@@ -1,0 +1,31 @@
+import csv
+
+# Open the input file and read the data
+with open("input.txt", "r") as input_file:
+    reader = csv.DictReader(input_file)
+
+    for row in reader:
+        # Extract the columns we want to keep
+        add_number = row["Add_Number"]
+        street_name = row["StreetName"].lower()
+        zip_code = row["Zip_Code"]
+        county = row["County"]
+        state = row["State"]
+        longitude = row["Longitude"]
+        latitude = row["Latitude"]
+        addr_type = row["Addr_Type"]
+
+        # Create the "Name" column
+        name = f"{add_number}{street_name}.{zip_code}".lower()
+        
+        # Open the output file with the 'name' column as the filename
+        with open(f"{name}.txt", "w") as output_file:
+            # Write the data of row to the file
+            output_file.write(f"Add_Number: {add_number}\n")
+            output_file.write(f"StreetName: {street_name}\n")
+            output_file.write(f"Zip_Code: {zip_code}\n")
+            output_file.write(f"County: {county}\n")
+            output_file.write(f"State: {state}\n")
+            output_file.write(f"Longitude: {longitude}\n")
+            output_file.write(f"Latitude: {latitude}\n")
+            output_file.write(f"Addr_Type: {addr_type}\n")
